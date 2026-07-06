@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Discovery Companion — AI-Native MVP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family:'Segoe UI', Arial, sans-serif; background:#0d0d17; color:#f4f4f8; margin:0; padding:0; }
+  .wrap { max-width:720px; margin:0 auto; padding:24px 18px 40px; }
+  .eyebrow { font-size:12px; font-weight:700; color:#1ed760; letter-spacing:1.5px; text-transform:uppercase; }
+  h1 { font-size:24px; margin:6px 0 8px; }
+  p.intro { color:#b7b7c3; font-size:14px; line-height:1.55; margin-bottom:18px;}
+  .setup { background:#17171f; border:1px solid #2a2a35; border-radius:14px; padding:16px; margin-bottom:16px; }
+  .setup label { font-size:12.5px; color:#9c9ca8; font-weight:600; display:block; margin-bottom:6px; }
+  .setup input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #33333f; background:#0d0d17; color:#fff; font-size:14px; margin-bottom:12px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+  .chip { background:#0d0d17; border:1px solid #33333f; color:#d0d0d8; font-size:12.5px; padding:6px 12px; border-radius:999px; cursor:pointer; }
+  .chip:hover { border-color:#1ed760; color:#1ed760; }
+  .chat { background:#111118; border:1px solid #2a2a35; border-radius:14px; padding:16px; min-height:200px; max-height:460px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:14px; }
+  .msg { max-width:88%; padding:12px 14px; border-radius:14px; font-size:14px; line-height:1.55; }
+  .msg.user { align-self:flex-end; background:#1ed760; color:#0d0d17; font-weight:500; }
+  .msg.agent { align-self:flex-start; background:#20202b; color:#f0f0f5; }
+  .track { border:1px solid #33333f; border-radius:10px; padding:10px 12px; margin-top:8px; background:#17171f; }
+  .track .name { font-weight:700; font-size:14px; }
+  .track .artist { color:#9c9ca8; font-size:12.5px; margin-bottom:4px;}
+  .track .why { font-size:13px; color:#c9c9d4; margin-top:4px; }
+  .composer { display:flex; gap:8px; }
+  .composer input { flex:1; padding:12px 14px; border-radius:10px; border:1px solid #33333f; background:#17171f; color:#fff; font-size:14px; }
+  .composer button { background:#1ed760; color:#0d0d17; border:none; border-radius:10px; padding:0 18px; font-weight:700; font-size:14px; cursor:pointer; }
+  .composer button:disabled { opacity:0.5; cursor:default; }
+  .note { font-size:12px; color:#7c7c88; margin-top:16px; line-height:1.6; }
+  .why-panel { background:#17171f; border:1px solid #2a2a35; border-radius:14px; padding:16px; margin-top:16px; font-size:13px; color:#c9c9d4; line-height:1.6; }
+  .why-panel b { color:#1ed760; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">AI-Native MVP · Production Prototype</div>
+  <h1>🎧 Discovery Companion</h1>
+  <p class="intro">Not another playlist — a listening partner you can talk to. Tell it what you already love and what you want more or less of, and it negotiates with you in real time, explaining <i>why</i> every pick fits. This is a live prototype: every reply below is generated live by Claude, not scripted.</p>
+
+  <div class="setup">
+    <label>What do you usually listen to? (a few artists/genres)</label>
+    <input id="taste" placeholder="e.g. Radiohead, Bon Iver, some lo-fi hip hop" value="Tame Impala, Khruangbin, a lot of chillhop">
+    <label>What are you in the mood to explore today?</label>
+    <div class="chips" id="chips">
+      <div class="chip" data-v="Something adjacent to my taste but weirder">Adjacent but weirder</div>
+      <div class="chip" data-v="A completely different genre I've never tried">Totally new genre</div>
+      <div class="chip" data-v="Older music from decades I don't usually listen to">Different decade</div>
+      <div class="chip" data-v="Music from a part of the world I don't usually listen to">Different region</div>
+    </div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="msg agent">Set your taste above, pick (or type) what you want to explore, and hit send — I'll suggest 3 tracks and explain the thread connecting them to what you already love. You can then push back — "too mellow," "more upbeat," "closer to my taste" — and I'll adjust live, in the same conversation.</div>
+  </div>
+
+  <div class="composer">
+    <input id="msgInput" placeholder="Type what you want to explore, or push back on my last picks…">
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <div class="why-panel">
+    <b>Why this needs AI, not a better recommendation algorithm:</b> Collaborative filtering and embedding similarity can tell you what's statistically close to what you already play — that's exploitation, not exploration, and it's exactly the loop users are complaining about. It can't hold a conversation, take an explicit instruction like "weirder, but not louder," reason across genres that share no listener overlap (e.g. why 1970s Ethiopian jazz connects to a Khruangbin fan), or explain itself in language a human trusts. An LLM can do all four in one turn, and adjust again next turn — turning discovery from a passive weekly drop into an active, steerable dialogue the user controls.
+  </div>
+
+  <div class="note">Prototype scope: a 40-track illustrative reference catalog stands in for Spotify's full library so the reasoning pattern can be evaluated end-to-end. In production, track selection would call Spotify's catalog/audio-features API; Claude's role — intent parsing, cross-genre reasoning, and conversational negotiation — stays the same.</div>
+</div>
+
+<script>
+const CATALOG = [
+  "Tame Impala - Currents (psych-rock/pop)", "Khruangbin - Con Todo El Mundo (Thai funk/psych)",
+  "Mulatu Astatke - Mulatu of Ethiopia (Ethio-jazz)", "Fela Kuti - Zombie (Afrobeat)",
+  "Bonobo - Migration (downtempo/electronic)", "Nubya Garcia - Source (UK jazz)",
+  "Toro y Moi - Causers of This (chillwave)", "King Krule - The OOZ (post-punk/jazz)",
+  "Little Simz - Sometimes I Might Be Introvert (UK hip hop)", "Sault - Nine (afro-soul)",
+  "Alice Coltrane - Journey in Satchidananda (spiritual jazz)", "Silvana Estrada - Marchita (Mexican folk)",
+  "Altin Gun - Yol (Turkish psych folk)", "Hiatus Kaiyote - Choose Your Weapon (future soul)",
+  "Kamaal Williams - The Return (broken beat/jazz)", "Cymande - Cymande (funk/reggae)",
+  "Ana Tijoux - Vengo (Chilean hip hop)", "Rodrigo Amarante - Cavalo (Brazilian folk)",
+  "Onipa - We No Be Machine (Ghanaian electro)", "Melody's Echo Chamber - self-titled (dream pop)",
+  "Yussef Dayes - Black Classical Music (UK jazz/drums)", "Ibeyi - Ash (Afro-Cuban)",
+  "Khun Narin - Khun Narin's Electric Phin Band (Thai psych)", "Sun Ra - Space Is the Place (free jazz)",
+  "L'Impératrice - Matahari (French disco funk)", "Fatoumata Diawara - Fenfo (Malian folk)",
+  "Sudan Archives - Athena (violin/R&B)", "Moses Sumney - Grae (art pop)",
+  "Fontaines D.C. - Skinty Fia (post-punk)", "Ravyn Lenae - HYPNOS (neo-soul)",
+  "Nala Sinephro - Space 1.8 (ambient jazz)", "Jyoty - Frequency (Surinamese/Dutch club)",
+  "Bombino - Nomad (Tuareg guitar)", "Cocoa Tea - Rocking Dolly (roots reggae)",
+  "Meridian Brothers - Cumbia Siglo XXI (Colombian cumbia)", "Yasmin Williams - Urban Driftwood (fingerstyle guitar)",
+  "Sen Morimoto - Diagnosis (jazz rap)", "Tinariwen - Amassakoul (Tuareg blues)",
+  "Nickodemus - Sonora (global bass)", "Domi & JD Beck - Not Tight (jazz fusion)",
+  "Mdou Moctar - Afrique Victime (Saharan rock)"
+];
+
+document.getElementById("chips").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  document.getElementById("msgInput").value = chip.getAttribute("data-v");
+});
+
+const chatEl = document.getElementById("chat");
+let history = [];
+
+function addMsg(role, html) {
+  const div = document.createElement("div");
+  div.className = "msg " + (role === "user" ? "user" : "agent");
+  div.innerHTML = html;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function sendMessage() {
+  const input = document.getElementById("msgInput");
+  const taste = document.getElementById("taste").value.trim() || "no stated preference";
+  const text = input.value.trim();
+  if (!text) return;
+  addMsg("user", escapeHtml(text));
+  input.value = "";
+  const btn = document.getElementById("sendBtn");
+  btn.disabled = true;
+
+  const thinking = document.createElement("div");
+  thinking.className = "msg agent";
+  thinking.textContent = "Thinking through the thread…";
+  chatEl.appendChild(thinking);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  const systemPrompt = `You are "Discovery Companion", a conversational music-discovery agent inside a music streaming app. The user's stated everyday taste is: "${taste}".
+You can only recommend tracks from this reference catalog (pick exactly 3 per turn, never invent tracks outside it, never repeat a track already recommended earlier in this conversation unless the user asks to revisit it):
+${CATALOG.join("; ")}
+
+Conversation so far (JSON): ${JSON.stringify(history)}
+
+The user's new message: "${text}"
+
+Respond ONLY with minified JSON, no markdown, exactly these keys:
+{"reply": "1-2 warm, concise sentences responding to what the user just said, in a knowledgeable-friend tone, no emoji", "tracks": [{"track": "exact string from catalog", "why": "1 sentence explaining the specific thread connecting this track to the user's stated taste and current request - be concrete about the musical/cultural link, not generic"}]}
+If the user is just chatting and not asking for tracks, return an empty tracks array.`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 800,
+        messages: [{ role: "user", content: systemPrompt }]
+      })
+    });
+    const data = await resp.json();
+    const textOut = data.content.filter(b => b.type === "text").map(b => b.text).join("");
+    const cleaned = textOut.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+
+    thinking.remove();
+    let html = escapeHtml(parsed.reply);
+    (parsed.tracks || []).forEach(t => {
+      const parts = t.track.split(" - ");
+      html += `<div class="track"><div class="name">${escapeHtml(parts[0] || t.track)}</div><div class="artist">${escapeHtml(parts.slice(1).join(" - "))}</div><div class="why">💡 ${escapeHtml(t.why)}</div></div>`;
+    });
+    addMsg("agent", html);
+    history.push({ user: text, agent: parsed.reply, tracks: (parsed.tracks || []).map(t => t.track) });
+  } catch (err) {
+    thinking.remove();
+    addMsg("agent", "Sorry, I hit an error reaching the model — try sending that again.");
+  }
+  btn.disabled = false;
+}
+
+document.getElementById("sendBtn").addEventListener("click", sendMessage);
+document.getElementById("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
+</script>
+</body>
+</html>
